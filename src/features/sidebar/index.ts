@@ -18,7 +18,17 @@ export { SidebarMount, type SidebarMountOptions } from './SidebarMount';
 export { SidebarProvider, type SidebarProviderProps } from './SidebarProvider';
 export { SidebarRoot, type SidebarRootProps } from './SidebarRoot';
 export {
+  SIDEBAR_EMAIL_SNAPSHOT_EVENT,
+  SIDEBAR_EMAIL_SNAPSHOT_REQUEST_EVENT,
+  createSidebarEmailSnapshot,
+  dispatchSidebarEmailSnapshot,
+  requestSidebarEmailSnapshot,
+  type SidebarEmailSnapshot,
+  type SidebarEmailSnapshotEventDetail,
+} from './SidebarEmailBridge';
+export {
   createSidebarStore,
+  sidebarStore,
   type SidebarStoreApi,
   type SidebarStoreState,
   type SidebarThemeMode,

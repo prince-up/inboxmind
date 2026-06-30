@@ -204,6 +204,39 @@ button {
   background: var(--im-border-strong);
 }
 
+.im-email-details {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.im-email-details__row {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.im-email-details__row--stacked {
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.im-email-details dt {
+  color: var(--im-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.im-email-details dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--im-text);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
 .im-button {
   position: relative;
   display: inline-flex;

@@ -1,6 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState, type ReactElement } from 'react';
 
+import type { ParsedConversation, ParsedEmail } from '~features/parser';
+
 import { FADE_VARIANTS } from '../SidebarAnimations';
 import { useSidebarStore } from '../SidebarContext';
 import { Button } from './Button';
@@ -37,15 +39,29 @@ const sections = [
   },
 ] as const;
 
+interface SidebarSectionViewModel {
+  readonly description: string;
+  readonly title: string;
+}
+
 /**
  * Complete sidebar surface composed from reusable infrastructure components.
  */
 export function Sidebar({ version }: SidebarProps): ReactElement {
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const close = useSidebarStore((state) => state.close);
+  const currentConversation = useSidebarStore(
+    (state) => state.currentConversation,
+  );
+  const currentEmail = useSidebarStore((state) => state.currentEmail);
+  const emailSnapshot = useSidebarStore((state) => state.emailSnapshot);
   const isLoading = useSidebarStore((state) => state.isLoading);
   const setTheme = useSidebarStore((state) => state.setTheme);
   const theme = useSidebarStore((state) => state.theme);
+  const visibleSections = createSidebarSections(
+    currentConversation,
+    currentEmail,
+  );
 
   return (
     <div className="im-sidebar">
@@ -110,10 +126,46 @@ export function Sidebar({ version }: SidebarProps): ReactElement {
               key="sections"
               variants={FADE_VARIANTS}
             >
-              {sections.map((section, index) => (
+              {emailSnapshot ? (
+                <Card index={0}>
+                  <div className="im-section__heading">
+                    <h2>Email</h2>
+                  </div>
+                  <dl className="im-email-details">
+                    <div className="im-email-details__row">
+                      <dt>Subject</dt>
+                      <dd>{emailSnapshot.subject}</dd>
+                    </div>
+                    <div className="im-email-details__row">
+                      <dt>Sender</dt>
+                      <dd>{emailSnapshot.sender ?? 'Unknown sender'}</dd>
+                    </div>
+                    <div className="im-email-details__row">
+                      <dt>Recipients</dt>
+                      <dd>
+                        {emailSnapshot.recipients.length > 0
+                          ? emailSnapshot.recipients.join(', ')
+                          : 'No recipients detected'}
+                      </dd>
+                    </div>
+                    <div className="im-email-details__row">
+                      <dt>Date</dt>
+                      <dd>{emailSnapshot.date ?? 'No date detected'}</dd>
+                    </div>
+                    <div className="im-email-details__row im-email-details__row--stacked">
+                      <dt>Body preview</dt>
+                      <dd>
+                        {emailSnapshot.bodyPreview ||
+                          'No body preview available'}
+                      </dd>
+                    </div>
+                  </dl>
+                </Card>
+              ) : null}
+              {visibleSections.map((section, index) => (
                 <Section
                   description={section.description}
-                  index={index}
+                  index={emailSnapshot ? index + 1 : index}
                   key={section.title}
                   title={section.title}
                 />
@@ -130,4 +182,74 @@ export function Sidebar({ version }: SidebarProps): ReactElement {
       />
     </div>
   );
+}
+
+/**
+ * Derives the existing sidebar sections from live parser state.
+ */
+function createSidebarSections(
+  currentConversation: ParsedConversation | null,
+  currentEmail: ParsedEmail | null,
+): readonly SidebarSectionViewModel[] {
+  if (!currentEmail) {
+    return sections;
+  }
+
+  return [
+    {
+      description: createPreview(currentEmail.bodyPlain),
+      title: 'Summary',
+    },
+    {
+      description: currentEmail.date
+        ? `Parsed email date: ${currentEmail.date}`
+        : 'No date was detected in the parsed email.',
+      title: 'Deadline',
+    },
+    {
+      description: `Loaded conversation ${currentConversation?.conversationId ?? currentEmail.conversationId}.`,
+      title: 'Reminder',
+    },
+    {
+      description: createRecipientDescription(currentEmail),
+      title: 'Actions',
+    },
+    {
+      description:
+        currentEmail.labels.length > 0
+          ? `Labels: ${currentEmail.labels.join(', ')}`
+          : 'No labels were detected in the parsed email.',
+      title: 'Notes',
+    },
+  ];
+}
+
+/**
+ * Creates a compact body preview from parsed email content.
+ */
+function createPreview(body: string): string {
+  const normalized = body.replace(/\s+/g, ' ').trim();
+
+  if (!normalized) {
+    return 'No body preview is available for the parsed email.';
+  }
+
+  return normalized.length <= 180 ? normalized : `${normalized.slice(0, 179)}…`;
+}
+
+/**
+ * Creates a compact live-recipient description from parser output.
+ */
+function createRecipientDescription(currentEmail: ParsedEmail): string {
+  if (currentEmail.recipients.length === 0) {
+    return 'No recipients were detected in the parsed email.';
+  }
+
+  return `Recipients: ${currentEmail.recipients
+    .map((recipient) =>
+      recipient.name
+        ? `${recipient.name} <${recipient.email}>`
+        : recipient.email,
+    )
+    .join(', ')}`;
 }

@@ -1,7 +1,7 @@
 import { logger, type Logger } from '~utils';
 
 import { SidebarMount } from './SidebarMount';
-import { createSidebarStore, type SidebarStoreApi } from './SidebarStore';
+import { sidebarStore, type SidebarStoreApi } from './SidebarStore';
 import { SIDEBAR_THEME } from './SidebarTheme';
 
 export interface SidebarEngineDependencies {
@@ -29,7 +29,7 @@ export class SidebarEngine {
     private readonly engineLogger: Logger = logger,
   ) {
     this.mount = new SidebarMount(dependencies.document);
-    this.store = createSidebarStore();
+    this.store = sidebarStore;
   }
 
   /**
