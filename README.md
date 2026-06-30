@@ -1,33 +1,90 @@
-This is a [Plasmo extension](https://docs.plasmo.com/) project bootstrapped with [`plasmo init`](https://www.npmjs.com/package/plasmo).
+# InboxMind AI
 
-## Getting Started
+InboxMind AI is a production-oriented Chrome extension foundation for an AI
+email copilot embedded in Gmail. The extension uses Plasmo, React, strict
+TypeScript, Tailwind CSS, Zustand, and TanStack Query on Manifest V3.
 
-First, run the development server:
+This commit establishes architecture and tooling only. Product features are
+introduced incrementally in later commits.
+
+## Requirements
+
+- Node.js 20.11 or newer
+- pnpm 9.15.1
+- Google Chrome with Manifest V3 support
+
+## Commands
 
 ```bash
+pnpm install
 pnpm dev
-# or
-npm run dev
-```
-
-Open your browser and load the appropriate development build. For example, if you are developing for the chrome browser, using manifest v3, use: `build/chrome-mv3-dev`.
-
-You can start editing the popup by modifying `popup.tsx`. It should auto-update as you make changes. To add an options page, simply add a `options.tsx` file to the root of the project, with a react component default exported. Likewise to add a content page, add a `content.ts` file to the root of the project, importing some module and do some logic, then reload the extension on your browser.
-
-For further guidance, [visit our Documentation](https://docs.plasmo.com/)
-
-## Making production build
-
-Run the following:
-
-```bash
+pnpm typecheck
+pnpm lint
+pnpm format:check
 pnpm build
-# or
-npm run build
+pnpm validate
 ```
 
-This should create a production bundle for your extension, ready to be zipped and published to the stores.
+The development extension is generated at `build/chrome-mv3-dev`. The
+production extension is generated at `build/chrome-mv3-prod`.
 
-## Submit to the webstores
+## Architecture
 
-The easiest way to deploy your Plasmo extension is to use the built-in [bpp](https://bpp.browser.market) GitHub action. Prior to using this action however, make sure to build your extension and upload the first version to the store to establish the basic credentials. Then, simply follow [this setup instruction](https://docs.plasmo.com/framework/workflows/submit) and you should be on your way for automated submission!
+All runtime source code lives under `src/`.
+
+```text
+src/
+├── background/    Manifest V3 service-worker entry points
+├── components/    Shared React components and providers
+├── config/        Validated environment and runtime configuration
+├── constants/     Routes, selectors, and versioned storage keys
+├── contents/      Plasmo content-script entry points
+├── features/      Self-contained product feature modules
+│   ├── ai/
+│   ├── gmail/
+│   ├── notification/
+│   ├── parser/
+│   ├── reminder/
+│   └── sidebar/
+├── hooks/         Reusable React hooks
+├── lib/           Configured third-party infrastructure
+├── services/      External-system and browser API boundaries
+├── store/         Zustand store factories and shared state
+├── styles/        Tailwind layers and global styles
+├── types/         Provider-neutral domain contracts
+└── utils/         Focused browser, DOM, logging, and storage helpers
+```
+
+Feature modules own their UI, hooks, services, state, and domain behavior.
+Cross-feature primitives belong in the corresponding top-level shared folder.
+Dependencies flow from features toward shared contracts and infrastructure;
+shared modules never import feature implementations.
+
+## Import conventions
+
+The `@/*` alias resolves to `src/*`. Absolute imports are required when crossing
+module boundaries. Relative imports remain appropriate within a tightly
+coupled folder.
+
+```ts
+import type { Email } from '@/types';
+```
+
+## Environment configuration
+
+Plasmo exposes public build-time values with the `PLASMO_PUBLIC_` prefix. Copy
+`.env.example` to a local Plasmo environment file when overriding defaults.
+Environment values are validated before use.
+
+| Variable                  | Allowed values                             | Default |
+| ------------------------- | ------------------------------------------ | ------- |
+| `PLASMO_PUBLIC_LOG_LEVEL` | `debug`, `info`, `warn`, `error`, `silent` | `info`  |
+
+Never expose secrets through `PLASMO_PUBLIC_` variables. Secrets must remain
+behind a trusted server boundary.
+
+## Quality gates
+
+`pnpm validate` runs strict TypeScript checks, ESLint, Prettier verification,
+and a production Plasmo build. Every commit must pass these gates before the
+next product layer is introduced.
