@@ -72,6 +72,29 @@ function handleEmailSnapshot(event: Event): void {
   }
 
   sidebarStore.getState().setParserData(detail);
+
+  if (detail.currentEmail) {
+    const emailPayload = {
+      id: detail.currentEmail.id ?? Date.now().toString(),
+      threadId: detail.currentConversation?.conversationId ?? '',
+      subject: detail.currentEmail.subject,
+      sender: { address: detail.currentEmail.sender?.email ?? '' },
+      recipients: detail.currentEmail.recipients.map((r) => ({
+        address: r.email,
+      })),
+      sentAt: detail.currentEmail.date ?? new Date().toISOString(),
+      bodyText: detail.currentEmail.bodyPlain,
+    };
+
+    chrome.runtime
+      .sendMessage({
+        type: 'PROCESS_PARSED_EMAIL',
+        payload: emailPayload,
+      })
+      .catch(() => {
+        // Ignore background worker inactive errors
+      });
+  }
 }
 
 /**

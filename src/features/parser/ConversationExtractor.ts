@@ -8,8 +8,6 @@ import type { ParsedConversation, ParsedEmail } from './ParserTypes';
  * Extracts complete Gmail conversations while caching the connected root.
  */
 export class ConversationExtractor {
-  private cachedConversation: Element | null = null;
-
   public constructor(
     private readonly document: Document,
     private readonly emailExtractor: EmailExtractor,
@@ -78,30 +76,34 @@ export class ConversationExtractor {
   /**
    * Invalidates cached DOM references after Gmail navigation.
    */
-  invalidate(): void {
-    this.cachedConversation = null;
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  invalidate(): void {}
 
   /**
    * Reuses a connected conversation root to avoid repeated global queries.
    */
   private getConversation(): Element {
-    if (this.cachedConversation?.isConnected) {
-      return this.cachedConversation;
-    }
-
-    const conversation = this.document.querySelector(
+    // Gmail may cache old views in the DOM with display: none.
+    // Query all matching elements and find the one that is currently visible.
+    const conversations = Array.from(this.document.querySelectorAll(
       PARSER_SELECTORS.conversation,
-    );
-    if (!conversation) {
+    ));
+    
+    // An element is usually visible if it has an offsetParent or if it's the only one.
+    // However, in extension context, getComputedStyle is safer for checking display.
+    const activeConversation = conversations.find((el) => {
+      const style = this.document.defaultView?.getComputedStyle(el);
+      return style?.display !== 'none';
+    }) ?? conversations[0];
+
+    if (!activeConversation) {
       throw new ParserError(
         'CONVERSATION_NOT_FOUND',
         'No Gmail conversation is currently rendered.',
       );
     }
-
-    this.cachedConversation = conversation;
-    return conversation;
+    
+    return activeConversation;
   }
 
   /**
